@@ -1,0 +1,10 @@
+[package]
+name = "geo_data_tiler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+geohashrust = "0.0.2"
+polars = {version = "0.33.2", features = ["lazy"]}
