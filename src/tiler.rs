@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use geohashrust::{BinaryHash, GeoLocation};
 use polars::prelude::*;
 
+use crate::binary_hash_tile::BinaryHashTile;
+
 pub struct Tiler {
     pub binary_hash_precision: u8,
     pub max_allowed_features_in_binary_hash: u64,
@@ -27,7 +29,7 @@ impl Tiler {
         *self.binary_hash_count.entry(binary_hash).or_insert(0) += 1;
     }
 
-    pub fn get_tiles(&self) -> Result<HashMap<String, i64>, PolarsError> {
+    pub fn get_tiles(&self) -> Result<HashMap<String, BinaryHashTile>, PolarsError> {
         let node_count: Vec<i64> = self.binary_hash_count.clone().into_values().collect();
         let binary_hash: Vec<String> = self.binary_hash_count.clone().into_keys().collect();
 
@@ -90,7 +92,15 @@ impl Tiler {
                 .into_iter()
                 .zip(sliced_binary_hash_list.into_iter())
             {
-                binary_hash_tiles.insert(sliced_binary_hash, node_count);
+                let bounding_box = BinaryHash::from_string(sliced_binary_hash.as_str()).decode();
+                let binary_hash_tile = BinaryHashTile {
+                    node_count: node_count,
+                    min_lon: bounding_box.min_lon,
+                    min_lat: bounding_box.min_lat,
+                    max_lon: bounding_box.max_lon,
+                    max_lat: bounding_box.max_lat,
+                };
+                binary_hash_tiles.insert(sliced_binary_hash, binary_hash_tile);
             }
         }
 
@@ -110,7 +120,15 @@ impl Tiler {
             .into_iter()
             .zip(binary_hash_list.into_iter())
         {
-            binary_hash_tiles.insert(binary_hash, node_count);
+            let bounding_box = BinaryHash::from_string(binary_hash.as_str()).decode();
+            let binary_hash_tile = BinaryHashTile {
+                node_count: node_count,
+                min_lon: bounding_box.min_lon,
+                min_lat: bounding_box.min_lat,
+                max_lon: bounding_box.max_lon,
+                max_lat: bounding_box.max_lat,
+            };
+            binary_hash_tiles.insert(binary_hash, binary_hash_tile);
         }
 
         Ok(binary_hash_tiles)
@@ -119,9 +137,7 @@ impl Tiler {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use crate::tiler::Tiler;
+    use super::*;
 
     #[test]
     fn it_works() {
@@ -134,7 +150,16 @@ mod tests {
         tiler.add_coordinate(1.5, 1.5);
 
         let binary_hash_tiles = tiler.get_tiles().unwrap();
-        let expected_result_tiles = HashMap::from([("1".to_string(), 5)]);
+        let expected_result_tiles = HashMap::from([(
+            String::from("1"),
+            BinaryHashTile {
+                node_count: 5,
+                min_lon: 0.0,
+                min_lat: -90.0,
+                max_lon: 180.0,
+                max_lat: 90.0,
+            },
+        )]);
         assert_eq!(binary_hash_tiles, expected_result_tiles);
     }
 }
