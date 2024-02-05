@@ -27,7 +27,7 @@ impl Tiler {
         *self.binary_hash_count.entry(binary_hash).or_insert(0) += 1;
     }
 
-    pub fn get_tiles(&self) -> Result<(), PolarsError> {
+    pub fn get_tiles(&self) -> Result<HashMap<String, i64>, PolarsError> {
         let node_count: Vec<i64> = self.binary_hash_count.clone().into_values().collect();
         let binary_hash: Vec<String> = self.binary_hash_count.clone().into_keys().collect();
 
@@ -36,7 +36,7 @@ impl Tiler {
             "binary_hash" => binary_hash
         )?;
 
-        let mut binary_hash_results = HashMap::new();
+        let mut binary_hash_tiles = HashMap::new();
 
         for i in 0..self.binary_hash_precision as usize {
             let sliced_binary_hash: Vec<&str> = binary_hash_count_df
@@ -90,7 +90,7 @@ impl Tiler {
                 .into_iter()
                 .zip(sliced_binary_hash_list.into_iter())
             {
-                binary_hash_results.insert(sliced_binary_hash, node_count);
+                binary_hash_tiles.insert(sliced_binary_hash, node_count);
             }
         }
 
@@ -110,17 +110,17 @@ impl Tiler {
             .into_iter()
             .zip(binary_hash_list.into_iter())
         {
-            binary_hash_results.insert(binary_hash, node_count);
+            binary_hash_tiles.insert(binary_hash, node_count);
         }
 
-        println!("{:?}", binary_hash_results);
-
-        Ok(())
+        Ok(binary_hash_tiles)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crate::tiler::Tiler;
 
     #[test]
@@ -133,9 +133,8 @@ mod tests {
         tiler.add_coordinate(4.0, 1.0);
         tiler.add_coordinate(1.5, 1.5);
 
-        tiler.get_tiles().unwrap();
-
-        println!("lol");
-        assert_eq!(4, 4);
+        let binary_hash_tiles = tiler.get_tiles().unwrap();
+        let expected_result_tiles = HashMap::from([("1".to_string(), 5)]);
+        assert_eq!(binary_hash_tiles, expected_result_tiles);
     }
 }
