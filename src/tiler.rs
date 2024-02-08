@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut tiler = Tiler::new(11, 100000000);
+        let mut tiler = Tiler::new(11, 10000000);
 
         tiler.add_coordinate(1.0, 1.0);
         tiler.add_coordinate(1.0, 2.0);
